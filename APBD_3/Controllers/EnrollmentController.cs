@@ -31,18 +31,15 @@ namespace APBD_3.Controllers
 
             
             using (var client = new SqlConnection(CONNECTION_STRING))
-            {
+            using (var command = new SqlCommand())
+            { 
+               command.CommandText = "SELECT IdStudy FROM Studies where Name = '@Name';";
+               command.Parameters.AddWithValue("Name", request.Studies);
+                command.Connection = client;
+
                 client.Open();
                 var tran = client.BeginTransaction();
-
-                using (var command = new SqlCommand()){
-
-                    command.Connection = client;
-                    command.CommandText = "SELECT IdStudy FROM Studies where Name = '@Name';";
-                    command.Parameters.AddWithValue("Name", request.Studies);
-
-                   
-                    try
+                try
                     {
                         var reader = command.ExecuteReader();
 
@@ -111,7 +108,7 @@ namespace APBD_3.Controllers
                         tran.Rollback();
 
                     }
-                }
+                
             }
 
             var response = new EnrollStudentResponse()
@@ -126,16 +123,53 @@ namespace APBD_3.Controllers
         
 
         [HttpPost("promotions")]
-        public IActionResult PromoteStudents()
+        public IActionResult PromoteStudents(String Studies,int Semester )
         {
-            //check if studies exists
-            //Find all the students froms tudies = IT and semester=1
-            //Promote all student to the 2 semester
-            // find an enrollment record with studies= IT and semester = 2 -> IdEnrollment=10
+            //check if Enrollment exists
+            using (var client = new SqlConnection(CONNECTION_STRING))
+            using (var command = new SqlCommand())
+            {
+                
+                command.CommandText = "SELECT IdStudy FROM Studies where Name = '@Name';";
+                command.Parameters.AddWithValue("Name", Studies);
+                command.Connection = client;
+
+                client.Open();
+                var tran = client.BeginTransaction();
+
+                var reader = command.ExecuteReader();
+
+                    //check if studies exist else rollback + 404
+                    if (!reader.Read())
+                    {
+                        tran.Rollback();
+                        return BadRequest("Study Doesn't Exist");
+                        //studies does not exist
+                    }
+                    int IdStudy = (int)reader["IdStudy"];
+
+                    command.CommandText = "SELECT * FROM Enrollment  where Semester = @Semester AND IdStudy='@IdStudy'";
+                    command.Parameters.AddWithValue("IdStudy", IdStudy);
+                    command.Parameters.AddWithValue("Semester", Semester);
+
+                    reader = command.ExecuteReader();
+
+                    //check if studies exist else rollback + 404
+                    if (!reader.Read())
+                    {
+                        tran.Rollback();
+                        return BadRequest("Enrollment Doesn't Exist");
+                        //studies does not exist
+                    }
+
+            }
+                //Find all the students froms tudies = IT and semester=1
+                //Promote all student to the 2 semester
+                // find an enrollment record with studies= IT and semester = 2 -> IdEnrollment=10
 
 
-            //create stored procedure 
-            return Ok();
+                //create stored procedure 
+                return Ok();
         }
     }
 }
