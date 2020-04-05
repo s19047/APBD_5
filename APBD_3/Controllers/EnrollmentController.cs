@@ -43,7 +43,13 @@ namespace APBD_3.Controllers
         public IActionResult PromoteStudents(String Studies,int Semester )
         {
             _service.PromoteStudents(Studies, Semester);
-                return Ok();
+            var response = new EnrollStudentResponse()
+            {
+                Studies = Studies,
+                semester = ++Semester
+            };
+
+            return CreatedAtAction(nameof(EnrollStudent), response);
         }
     }
 }
